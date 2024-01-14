@@ -1,7 +1,19 @@
 library time_picker_spinner;
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 import 'package:time_picker_spinner_plus/src/item_scroll_physics.dart';
+
+String fromMillisecondsSinceEpoch(String fromTime) {
+  return DateFormat('HH:mm', 'en').format(
+    DateTime.fromMillisecondsSinceEpoch(
+      int.tryParse(fromTime) ?? 0,
+    ),
+  );
+}
 
 class TimePickerSpinner extends StatefulWidget {
   final DateTime? time;
@@ -18,21 +30,22 @@ class TimePickerSpinner extends StatefulWidget {
   final bool isForce2Digits;
   final TimePickerCallback? onTimeChange;
 
-  const TimePickerSpinner(
-      {super.key,
-      this.time,
-      this.minutesInterval = 1,
-      this.secondsInterval = 1,
-      this.is24HourMode = true,
-      this.isShowSeconds = false,
-      this.highlightedTextStyle,
-      this.normalTextStyle,
-      this.itemHeight,
-      this.itemWidth,
-      this.alignment,
-      this.spacing,
-      this.isForce2Digits = false,
-      this.onTimeChange});
+  const TimePickerSpinner({
+    super.key,
+    this.time,
+    this.minutesInterval = 15,
+    this.secondsInterval = 1,
+    this.is24HourMode = true,
+    this.isShowSeconds = false,
+    this.highlightedTextStyle,
+    this.normalTextStyle,
+    this.itemHeight,
+    this.itemWidth,
+    this.alignment,
+    this.spacing,
+    this.isForce2Digits = false,
+    this.onTimeChange,
+  });
 
   @override
   TimePickerSpinnerState createState() => TimePickerSpinnerState();
@@ -114,13 +127,23 @@ class TimePickerSpinnerState extends State<TimePickerSpinner> {
     int second = (currentSelectedSecondIndex -
             (isLoop(_getSecondCount()) ? _getSecondCount() : 1)) *
         widget.secondsInterval;
-    return DateTime(currentTime!.year, currentTime!.month, currentTime!.day,
-        hour, minute, second);
+    // return DateTime(currentTime!.year, currentTime!.month, currentTime!.day,
+    //     hour, minute, second);
+
+    /// Avoid adding seconds to the time.
+    // return TimeOfDay(hour: hour, minute: minute);
+    return DateTime.now().copyWith(
+      hour: hour,
+      minute: minute,
+      second: 0,
+      millisecond: 0,
+      microsecond: 0,
+    );
   }
 
-  @override
-  void initState() {
-    currentTime = widget.time ?? DateTime.now();
+  void initMe() {
+    log("widget.time:: ${widget.time} ####");
+    currentTime = widget.time;
 
     currentSelectedHourIndex =
         (currentTime!.hour % (widget.is24HourMode ? 24 : 12)) + _getHourCount();
@@ -133,8 +156,6 @@ class TimePickerSpinnerState extends State<TimePickerSpinner> {
     minuteController = ScrollController(
         initialScrollOffset:
             (currentSelectedMinuteIndex - 1) * _getItemHeight());
-    //print(currentSelectedMinuteIndex);
-    //print((currentSelectedMinuteIndex - 1) * _getItemHeight()!);
 
     currentSelectedSecondIndex =
         (currentTime!.second / widget.secondsInterval).floor() +
@@ -147,8 +168,6 @@ class TimePickerSpinnerState extends State<TimePickerSpinner> {
     apController = ScrollController(
         initialScrollOffset: (currentSelectedAPIndex - 1) * _getItemHeight());
 
-    super.initState();
-
     if (widget.onTimeChange != null) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => widget.onTimeChange!(getDateTime()));
@@ -156,7 +175,14 @@ class TimePickerSpinnerState extends State<TimePickerSpinner> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    initMe();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    log("Spiner plus::: currentTime:: $currentTime ####");
     // print(minuteController.offset);
     List<Widget> contents = [
       SizedBox(
@@ -175,7 +201,8 @@ class TimePickerSpinnerState extends State<TimePickerSpinner> {
           () => isHourScrolling = false,
         ),
       ),
-      spacer(),
+      const Gap(10),
+      // spacer(),
       SizedBox(
         width: _getItemWidth(),
         height: _getItemHeight() * 3,
@@ -267,18 +294,18 @@ class TimePickerSpinnerState extends State<TimePickerSpinner> {
                 controller.jumpTo(controller.offset - (max * _getItemHeight()));
               }
             }
-            setState(() {
-              onScrollEnd();
-              if (widget.onTimeChange != null) {
-                widget.onTimeChange!(getDateTime());
-              }
-            });
+            // setState(() {
+            onScrollEnd();
+            if (widget.onTimeChange != null) {
+              widget.onTimeChange!(getDateTime());
+            }
+            // });
           }
         } else if (scrollNotification is ScrollUpdateNotification) {
-          setState(() {
-            onUpdateSelectedIndex(
-                (controller.offset / _getItemHeight()).round() + 1);
-          });
+          // setState(() {
+          onUpdateSelectedIndex(
+              (controller.offset / _getItemHeight()).round() + 1);
+          // });
         }
         return true;
       },
@@ -341,12 +368,12 @@ class TimePickerSpinnerState extends State<TimePickerSpinner> {
         keepPage: true,
       ),
       onPageChanged: (index) {
-        setState(() {
-          currentSelectedAPIndex = index;
-          if (widget.onTimeChange != null) {
-            widget.onTimeChange!(getDateTime());
-          }
-        });
+        // setState(() {
+        currentSelectedAPIndex = index;
+        if (widget.onTimeChange != null) {
+          widget.onTimeChange!(getDateTime());
+        }
+        // });
       },
       children: List.generate(
         items.length,
@@ -375,11 +402,11 @@ class TimePickerSpinnerState extends State<TimePickerSpinner> {
             }
           }
         } else if (scrollNotification is ScrollUpdateNotification) {
-          setState(() {
-            currentSelectedAPIndex =
-                (apController.offset / _getItemHeight()).round();
-            isAPScrolling = true;
-          });
+          // setState(() {
+          currentSelectedAPIndex =
+              (apController.offset / _getItemHeight()).round();
+          isAPScrolling = true;
+          // });
         }
         return true;
       },
